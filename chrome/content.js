@@ -36,9 +36,17 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     case 'table':
       result = psychoxpath.get_abs_xpath(dwx_element, [], !request.attributes);
       result = psychoxpath.last_of_type(result, 'table');
+      break;
+    case 'test':
+      console.log("Results of " + request.path + " -->");
+      console.log(psychoxpath.evaluate_xpath(request.path));
+      console.log('<--');
   }
   if (result && request.short) {
     result = psychoxpath.shortest_xpath(result);
+  }
+  if (result && request.echo) {
+    console.log(result);
   }
   sendResponse({
     result: result,

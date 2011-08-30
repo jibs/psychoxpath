@@ -2,6 +2,7 @@
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
 ###
 attributes = on
+echo_console = on
 
 ###
 # Copy the contents of `text` to the clipboard.
@@ -19,6 +20,7 @@ to_clipboard = (text) ->
 message_and_save = (tab, message) ->
     message.attributes or= attributes
     message.short or= off
+    message.echo or= on 
 
     chrome.tabs.sendRequest tab.id, message, (response) ->
         if not response? or not response.result?
@@ -29,8 +31,22 @@ message_and_save = (tab, message) ->
         else
             to_clipboard "/#{ response.result.join('/') }"
 
+send_message = (tab, message, callback) ->
+    message.attributes ?= attributes
+    message.short ?= off
+    message.echo ?= echo_console
+
+    chrome.tabs.sendRequest tab.id, message, (response) ->
+        if not response? or not response.result?
+            return
+        if callback?
+            callback response
+
 # Contextual menu callbacks
 menu =
+    echoConsole: (info, tab) ->
+        echo_console = info.checked
+
     positional: (info, tab) ->
         attributes = info.checked
 
@@ -54,6 +70,15 @@ menu =
         message_and_save tab, {
             act: 'table'
             short: true
+        }
+
+    testXPath: (info, tab) ->
+        xpath = prompt 'XPath:', ''
+        return if not xpath
+
+        send_message tab, {
+            act: 'test'
+            path: xpath
         }
 
 # When our contextual menu should show
@@ -104,6 +129,19 @@ chrome.contextMenus.create({
     contexts: default_context
 })
 
+testXPath = chrome.contextMenus.create({
+    title: 'Test XPath'
+    parentId: root
+    contexts: default_context
+    onclick: menu.testXPath
+})
+
+chrome.contextMenus.create({
+    type: 'separator'
+    parentId: root
+    contexts: default_context
+})
+
 positional = chrome.contextMenus.create({
     title: 'Use attributes in XPaths'
     parentId: root
@@ -111,4 +149,13 @@ positional = chrome.contextMenus.create({
     type: 'checkbox'
     checked: attributes
     onclick: menu.positional
+})
+
+echoConsole = chrome.contextMenus.create({
+    title: 'Echo XPaths to console'
+    parentId: root
+    contexts: default_context
+    type: 'checkbox'
+    checked: echo_console 
+    onclick: menu.echoConsole
 })

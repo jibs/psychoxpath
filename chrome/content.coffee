@@ -31,9 +31,15 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
             result = psychoxpath.get_abs_xpath dwx_element,
                 [], !request.attributes
             result = psychoxpath.last_of_type result, 'table'
+        when 'test'
+            console.log "Results of #{ request.path } -->"
+            console.log psychoxpath.evaluate_xpath(request.path)
+            console.log '<--'
 
     if result and request.short
         result = psychoxpath.shortest_xpath result
+    if result and request.echo
+        console.log result
 
     sendResponse {
         result: result
