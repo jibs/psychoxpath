@@ -30,9 +30,10 @@
       # unique in the document.
       */
   node_unique_attribute = function(node, att) {
-    var q;
-    q = "" + node.nodeName + "[" + att.nodeName + "='" + att.nodeValue + "']";
-    return $(q).length === 1;
+    var name, q;
+    name = node.nodeName.toLowerCase();
+    q = "//" + name + "[@" + att.nodeName + "='" + att.nodeValue + "']";
+    return evaluate_xpath(q).length === 1;
   };
   /*
       # Returns a unique attribute selector for the given node,
@@ -61,7 +62,7 @@
   get_abs_xpath = function(node, path, position_only) {
     var a_name, a_value, name, position, tmp, txm, _ref;
     path || (path = []);
-    position_only || (position_only = true);
+    position_only || (position_only = false);
     if (node.parentNode != null) {
       txm = get_abs_xpath(node.parentNode, path);
     }
@@ -97,7 +98,7 @@
     var part, q, shortest, _ref;
     shortest = [];
     for (part = _ref = path.length - 1; part >= 0; part += -1) {
-      q = $(path[part].replace('@', ''));
+      q = evaluate_xpath("//" + path[part]);
       shortest.push(path[part]);
       if (q.length === 1) {
         break;

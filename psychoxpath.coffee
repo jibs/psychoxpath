@@ -27,10 +27,9 @@ jQuery ($) ->
     # unique in the document.
     ###
     node_unique_attribute = (node, att) ->
-        # Use jQuery to find nodes of the same type with the given
-        # attribute and attribute value.
-        q = "#{ node.nodeName }[#{ att.nodeName }='#{ att.nodeValue }']"
-        $(q).length == 1
+        name = node.nodeName.toLowerCase()
+        q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
+        evaluate_xpath(q).length == 1
 
     ###
     # Returns a unique attribute selector for the given node,
@@ -55,7 +54,7 @@ jQuery ($) ->
     ###
     get_abs_xpath = (node, path, position_only) ->
         path or= []
-        position_only or= true
+        position_only or= false
 
         # Recursively resolve down to the root node.
         if node.parentNode?
@@ -70,6 +69,8 @@ jQuery ($) ->
         tmp.push name
 
         if not position_only
+            # If possible, try to find a unique attribute for the given
+            # node.
             [a_name, a_value] = node_unique node
             if a_name? or a_value?
                 tmp.push "[@#{ a_name }='#{ a_value }']"
@@ -95,10 +96,9 @@ jQuery ($) ->
     shortest_xpath = (path) ->
         shortest = []
         for part in [path.length - 1..0] by -1
-            q = $(path[part].replace('@', ''))
+            q = evaluate_xpath("//#{ path[part] }")
             shortest.push path[part]
-            if q.length == 1
-                break
+            break if q.length == 1
         shortest.reverse()
 
     ###
