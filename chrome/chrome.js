@@ -7,11 +7,9 @@ function copy_to_clipboard(text) {
     document.execCommand("copy", false, null);
 }
 
-function absolute_to_buffer(info, tab) {
-    chrome.tabs.sendRequest(tab.id, {
-        'act': 'absolute',
-        'attributes': use_attributes
-    }, function(response) {
+function send_message_for_clip(tab, message) {
+    message.attributes = use_attributes;
+    chrome.tabs.sendRequest(tab.id, message, function(response) {
         if(response && typeof(response.result) !== "undefined") {
             result = response.result;
             if(result) {
@@ -21,18 +19,16 @@ function absolute_to_buffer(info, tab) {
     });
 }
 
+function absolute_to_buffer(info, tab) {
+    send_message_for_clip(tab, {'act': 'absolute'});
+}
+
 function shortest_to_buffer(info, tab) {
-    chrome.tabs.sendRequest(tab.id, {
-        'act': 'shortest',
-        'attributes': use_attributes
-    }, function(response) {
-        if(response && typeof(response.result) !== "undefined") {
-            result = response.result;
-            if(result) {
-                copy_to_clipboard('//' + result.join('/'));
-            }
-        }
-    });
+    send_message_for_clip(tab, {'act': 'shortest'});
+}
+
+function containing_table_to_buffer(info, tab) {
+    send_message_for_clip(tab, {'act': 'table'});
 }
 
 function toggle_positional(info, tab) {
@@ -58,6 +54,20 @@ var shortest = chrome.contextMenus.create({
     'onclick': shortest_to_buffer
 });
 
+
+var seperator = chrome.contextMenus.create({
+    'type': 'separator',
+    'parentId': root,
+    'contexts': ['page', 'selection', 'image', 'link'],
+});
+
+var shortest = chrome.contextMenus.create({
+    'title': 'Containing Table XPath',
+    'parentId': root,
+    'contexts': ['page', 'selection', 'image', 'link'],
+    'onclick': containing_table_to_buffer 
+});
+
 var seperator = chrome.contextMenus.create({
     'type': 'separator',
     'parentId': root,
@@ -65,7 +75,7 @@ var seperator = chrome.contextMenus.create({
 });
 
 var positional = chrome.contextMenus.create({
-    'title': 'Use Attributes',
+    'title': 'Use Attributes for Paths',
     'type': 'checkbox',
     'parentId': root,
     'contexts': ['page', 'selection', 'image', 'link'],

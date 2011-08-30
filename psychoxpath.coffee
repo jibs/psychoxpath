@@ -85,6 +85,24 @@ psychoxpath =
         return path
 
     ###
+    # Returns the path up to the last occurance of `type`.
+    # Takes:
+    #   path: list of path componenets
+    #   type: node type to search for
+    # Returns:
+    #   List of path componenets up to the last occuring `type`, or the
+    #   original path unmodified if it does not exist in the path.
+    ###
+    last_of_type: (path, type) ->
+        for part in [path.length - 1..0] by -1
+            tmp = path[part].toLowerCase()
+            idx = tmp.indexOf('[')
+            tmp = tmp.substring(0, idx) if idx != -1
+
+            return path[0..part] if tmp.indexOf(type.toLowerCase()) == 0
+        return path
+
+    ###
     # Extremely silly way of getting the shortest path, again by brute
     # forcing it.
     ###

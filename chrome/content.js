@@ -19,6 +19,9 @@ function onRequest(request, sender, sendResponse) {
     } else if(request.act == 'shortest') {
         result = psychoxpath.get_abs_xpath(dwx_element, [], !attributes);
         result = psychoxpath.shortest_xpath(result);
+    } else if(request.act == 'table') {
+        result = psychoxpath.get_abs_xpath(dwx_element, [], !attributes);
+        result = psychoxpath.last_of_type(result, 'table')
     }
 
     sendResponse({
