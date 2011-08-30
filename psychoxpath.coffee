@@ -1,17 +1,11 @@
 ###
-# A jQuery-based bookmarklet to extract XPaths for a given node.
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
 ###
-jQuery ($) ->
-    # State of the shift key
-    shiftkey = off
-    # Last printed XPath
-    last_xpath = null
-
+psychoxpath =
     ###
     # Get the 1-based index of the node to its parent.
     ###
-    node_position = (node) ->
+    node_position: (node) ->
         count = 1
         sibling = node.previousSibling
         loop
@@ -26,23 +20,23 @@ jQuery ($) ->
     # Returns true if the given node and attribute are
     # unique in the document.
     ###
-    node_unique_attribute = (node, att) ->
+    node_unique_attribute: (node, att) ->
         name = node.nodeName.toLowerCase()
         q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
-        evaluate_xpath(q).length == 1
+        psychoxpath.evaluate_xpath(q).length == 1
 
     ###
     # Returns a unique attribute selector for the given node,
     # if one exists.
     ###
-    node_unique = (node) ->
+    node_unique: (node) ->
         for attribute in node.attributes
             tag = attribute.nodeName
             continue if tag not in [
                 'id', 'class'
             ]
 
-            if node_unique_attribute node, attribute
+            if psychoxpath.node_unique_attribute node, attribute
                 return [attribute.nodeName, attribute.nodeValue]
 
         return [null, null]
@@ -52,13 +46,13 @@ jQuery ($) ->
     # If `position_only` is true, attributes will not be used
     # when building the path.
     ###
-    get_abs_xpath = (node, path, position_only) ->
+    get_abs_xpath: (node, path, position_only) ->
         path or= []
         position_only or= false
 
         # Recursively resolve down to the root node.
         if node.parentNode?
-            txm = get_abs_xpath(node.parentNode, path)
+            psychoxpath.get_abs_xpath(node.parentNode, path, position_only)
 
         tmp = []
         # We only want element nodes in our path
@@ -71,7 +65,7 @@ jQuery ($) ->
         if not position_only
             # If possible, try to find a unique attribute for the given
             # node.
-            [a_name, a_value] = node_unique node
+            [a_name, a_value] = psychoxpath.node_unique node
             if a_name? or a_value?
                 tmp.push "[@#{ a_name }='#{ a_value }']"
                 path.push tmp.join('')
@@ -79,10 +73,11 @@ jQuery ($) ->
 
         # No other siblings? Sweet...
         if not node.previousSibling
-            return path + [name]
+            path.push name
+            return path
 
         # If nothing else, fall back to the node position
-        position = node_position(node)
+        position = psychoxpath.node_position(node)
         if position > 1
             tmp.push "[#{ position }]"
 
@@ -93,18 +88,19 @@ jQuery ($) ->
     # Extremely silly way of getting the shortest path, again by brute
     # forcing it.
     ###
-    shortest_xpath = (path) ->
+    shortest_xpath: (path) ->
         shortest = []
         for part in [path.length - 1..0] by -1
-            q = evaluate_xpath("//#{ path[part] }")
+            q = psychoxpath.evaluate_xpath("//#{ path[part] }")
             shortest.push path[part]
             break if q.length == 1
         shortest.reverse()
+        return shortest
 
     ###
     # Evaluate a basic (attribute and index only) XPath.
     ###
-    evaluate_xpath = (path) ->
+    evaluate_xpath: (path) ->
         nodes = []
         # See if we can use Webkit or Firefox's built-in
         # ability to parse XPaths.
@@ -123,23 +119,3 @@ jQuery ($) ->
 
             return nodes
         return null
-
-    on_element_event = (event) ->
-        if shiftkey is off
-            return true
-
-        path = get_abs_xpath(this)
-        if last_xpath == path
-            return false
-
-        last_xpath = path
-        console.log "/#{ path.join('/') }"
-        console.log "//#{ shortest_xpath(path).join('/') }"
-
-        return false
-    
-    $(document).bind 'keyup keydown', (event) ->
-        shiftkey = event.shiftKey
-        return true
-
-    $('*').bind 'click', on_element_event
