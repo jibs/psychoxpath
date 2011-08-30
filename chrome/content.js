@@ -9,6 +9,11 @@ function onRequest(request, sender, sendResponse) {
     var result = null;
     var attributes = request.attributes;
 
+    if(!dwx_element) {
+        sendResponse({result: null});
+        return;
+    }
+
     if(request.act == 'absolute') {
         result = psychoxpath.get_abs_xpath(dwx_element, [], !attributes);
     } else if(request.act == 'shortest') {

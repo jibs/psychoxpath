@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
-coffee --compile psychoxpath.coffee
+coffee --bare --compile psychoxpath.coffee
 cp psychoxpath.js chrome

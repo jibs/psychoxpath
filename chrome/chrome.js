@@ -14,7 +14,9 @@ function absolute_to_buffer(info, tab) {
     }, function(response) {
         if(response && typeof(response.result) !== "undefined") {
             result = response.result;
-            copy_to_clipboard('/' + result.join('/'));
+            if(result) {
+                copy_to_clipboard('/' + result.join('/'));
+            }
         }
     });
 }
@@ -26,7 +28,9 @@ function shortest_to_buffer(info, tab) {
     }, function(response) {
         if(response && typeof(response.result) !== "undefined") {
             result = response.result;
-            copy_to_clipboard('//' + result.join('/'));
+            if(result) {
+                copy_to_clipboard('//' + result.join('/'));
+            }
         }
     });
 }
