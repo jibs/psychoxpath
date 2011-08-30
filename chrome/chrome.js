@@ -1,84 +1,107 @@
-var use_attributes = true;
-
-function copy_to_clipboard(text) {
-    var textarea = document.getElementById("copy-workaround");
-    textarea.value =  text;
-    textarea.select();
-    document.execCommand("copy", false, null);
-}
-
-function send_message_for_clip(tab, message) {
-    message.attributes = use_attributes;
-    chrome.tabs.sendRequest(tab.id, message, function(response) {
-        if(response && typeof(response.result) !== "undefined") {
-            result = response.result;
-            if(result) {
-                copy_to_clipboard('/' + result.join('/'));
-            }
-        }
+/*
+# (c) 2011 Tyler Kennedy <tk@tkte.ch>
+*/
+var absolute, attributes, default_context, menu, message_and_save, positional, root, shortTable, shortest, table, to_clipboard;
+attributes = true;
+/*
+# Copy the contents of `text` to the clipboard.
+*/
+to_clipboard = function(text) {
+  var textarea;
+  textarea = document.getElementById("copy-workaround");
+  textarea.value = text;
+  textarea.select();
+  return document.execCommand("copy", false, null);
+};
+/*
+# Sends a message to the content script on `tab` with the
+# body `message`, saving the response (if any) to the clipboard.
+*/
+message_and_save = function(tab, message) {
+  message.attributes || (message.attributes = attributes);
+  message.short || (message.short = false);
+  return chrome.tabs.sendRequest(tab.id, message, function(response) {
+    if (!(response != null) || !(response.result != null)) {
+      return;
+    }
+    if ((message.short != null) && message.short) {
+      return to_clipboard("//" + (response.result.join('/')));
+    } else {
+      return to_clipboard("/" + (response.result.join('/')));
+    }
+  });
+};
+menu = {
+  positional: function(info, tab) {
+    return attributes = info.checked;
+  },
+  absolute: function(info, tab) {
+    return message_and_save(tab, {
+      act: 'absolute'
     });
-}
-
-function absolute_to_buffer(info, tab) {
-    send_message_for_clip(tab, {'act': 'absolute'});
-}
-
-function shortest_to_buffer(info, tab) {
-    send_message_for_clip(tab, {'act': 'shortest'});
-}
-
-function containing_table_to_buffer(info, tab) {
-    send_message_for_clip(tab, {'act': 'table'});
-}
-
-function toggle_positional(info, tab) {
-    use_attributes = info.checked;
-}
-
-var root = chrome.contextMenus.create({
-    'title': 'PsychoXPath',
-    'contexts': ['page', 'selection', 'image', 'link'],
+  },
+  shortest: function(info, tab) {
+    return message_and_save(tab, {
+      act: 'absolute',
+      short: true
+    });
+  },
+  table: function(info, tab) {
+    return message_and_save(tab, {
+      act: 'table'
+    });
+  },
+  shortTable: function(info, tab) {
+    return message_and_save(tab, {
+      act: 'table',
+      short: true
+    });
+  }
+};
+default_context = ['all'];
+root = chrome.contextMenus.create({
+  title: 'PsychoXPath',
+  contexts: default_context
 });
-
-var absolute = chrome.contextMenus.create({
-    'title': 'Absolute XPath',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
-    'onclick': absolute_to_buffer
+absolute = chrome.contextMenus.create({
+  title: 'Element (Absolute)',
+  parentId: root,
+  contexts: default_context,
+  onclick: menu.absolute
 });
-
-var shortest = chrome.contextMenus.create({
-    'title': 'Shortest XPath',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
-    'onclick': shortest_to_buffer
+shortest = chrome.contextMenus.create({
+  title: 'Element (Shortest)',
+  parentId: root,
+  contexts: default_context,
+  onclick: menu.shortest
 });
-
-
-var seperator = chrome.contextMenus.create({
-    'type': 'separator',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
+chrome.contextMenus.create({
+  type: 'separator',
+  parentId: root,
+  contexts: default_context
 });
-
-var shortest = chrome.contextMenus.create({
-    'title': 'Containing Table XPath',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
-    'onclick': containing_table_to_buffer 
+table = chrome.contextMenus.create({
+  title: 'Containing Table (Absolute)',
+  parentId: root,
+  contexts: default_context,
+  onclick: menu.table
 });
-
-var seperator = chrome.contextMenus.create({
-    'type': 'separator',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
+shortTable = chrome.contextMenus.create({
+  title: 'Containing Table (Shortest)',
+  parentId: root,
+  contexts: default_context,
+  onclick: menu.shortTable
 });
-
-var positional = chrome.contextMenus.create({
-    'title': 'Use Attributes for Paths',
-    'type': 'checkbox',
-    'parentId': root,
-    'contexts': ['page', 'selection', 'image', 'link'],
-    'onclick': toggle_positional,
-    'checked': use_attributes
+chrome.contextMenus.create({
+  type: 'separator',
+  parentId: root,
+  contexts: default_context
+});
+positional = chrome.contextMenus.create({
+  title: 'Use attributes in XPaths',
+  parentId: root,
+  contexts: default_context,
+  type: 'checkbox',
+  checked: attributes,
+  onclick: menu.positional
 });
