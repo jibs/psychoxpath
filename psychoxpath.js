@@ -2,7 +2,7 @@
 # A jQuery-based bookmarklet to extract XPaths for a given node.
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
 */jQuery(function($) {
-  var get_abs_xpath, last_xpath, node_position, node_unique, node_unique_attribute, on_element_event, shiftkey, shortest_xpath;
+  var evaluate_xpath, get_abs_xpath, last_xpath, node_position, node_unique, node_unique_attribute, on_element_event, shiftkey, shortest_xpath;
   shiftkey = false;
   last_xpath = null;
   /*
@@ -44,7 +44,7 @@
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       attribute = _ref[_i];
       tag = attribute.nodeName;
-      if (tag === 'href' || tag === 'src' || tag === 'link' || tag === 'title') {
+      if (tag !== 'id' && tag !== 'class') {
         continue;
       }
       if (node_unique_attribute(node, attribute)) {
@@ -61,7 +61,7 @@
   get_abs_xpath = function(node, path, position_only) {
     var a_name, a_value, name, position, tmp, txm, _ref;
     path || (path = []);
-    position_only || (position_only = false);
+    position_only || (position_only = true);
     if (node.parentNode != null) {
       txm = get_abs_xpath(node.parentNode, path);
     }
@@ -104,6 +104,21 @@
       }
     }
     return shortest.reverse();
+  };
+  /*
+      # Evaluate a basic (attribute and index only) XPath.
+      */
+  evaluate_xpath = function(path) {
+    var nodes, q, x, _ref;
+    nodes = [];
+    if (document.evaluate) {
+      q = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      for (x = 0, _ref = q.snapshotLength - 1; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
+        nodes.push(q.snapshotItem(x));
+      }
+      return nodes;
+    }
+    return null;
   };
   on_element_event = function(event) {
     var path;

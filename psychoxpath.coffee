@@ -27,6 +27,8 @@ jQuery ($) ->
     # unique in the document.
     ###
     node_unique_attribute = (node, att) ->
+        # Use jQuery to find nodes of the same type with the given
+        # attribute and attribute value.
         q = "#{ node.nodeName }[#{ att.nodeName }='#{ att.nodeValue }']"
         $(q).length == 1
 
@@ -37,8 +39,9 @@ jQuery ($) ->
     node_unique = (node) ->
         for attribute in node.attributes
             tag = attribute.nodeName
-            # These tags are generally too long to be practical
-            continue if tag in ['href', 'src', 'link', 'title']
+            continue if tag not in [
+                'id', 'class'
+            ]
 
             if node_unique_attribute node, attribute
                 return [attribute.nodeName, attribute.nodeValue]
@@ -52,7 +55,7 @@ jQuery ($) ->
     ###
     get_abs_xpath = (node, path, position_only) ->
         path or= []
-        position_only or= false
+        position_only or= true
 
         # Recursively resolve down to the root node.
         if node.parentNode?
@@ -97,6 +100,29 @@ jQuery ($) ->
             if q.length == 1
                 break
         shortest.reverse()
+
+    ###
+    # Evaluate a basic (attribute and index only) XPath.
+    ###
+    evaluate_xpath = (path) ->
+        nodes = []
+        # See if we can use Webkit or Firefox's built-in
+        # ability to parse XPaths.
+        if document.evaluate
+            q = document.evaluate(
+                path
+                document
+                null
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE
+                null
+            )
+            # Iterators don't actually work in Webkit, so a bit of a
+            # roundabout...
+            for x in [0..q.snapshotLength - 1]
+                nodes.push q.snapshotItem(x)
+
+            return nodes
+        return null
 
     on_element_event = (event) ->
         if shiftkey is off
