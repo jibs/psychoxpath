@@ -1,10 +1,9 @@
 /*
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
-# 
-# Processes a request for XPaths within a tabs context.
 */
-var dwx_element;
+var dwx_element, p;
 dwx_element = null;
+p = psychoxpath;
 /*
 # Event delegation to get the element being selected by
 # the contexual menu. Required until the experimental context
@@ -26,7 +25,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   switch (request.act) {
     case 'autocomplete':
       results = null;
-      tmp_results = psychoxpath.evaluate_xpath(request.text);
+      tmp_results = p.evaluateXPath(request.text);
       if (tmp_results != null) {
         results = (function() {
           var _i, _len, _results;
@@ -34,7 +33,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
           for (_i = 0, _len = tmp_results.length; _i < _len; _i++) {
             tmp_result = tmp_results[_i];
             if (tmp_result != null) {
-              xpath = psychoxpath.get_abs_xpath(tmp_result, [], true);
+              xpath = p.getXPath(tmp_result, [], false);
               _results.push({
                 'content': xpath.join('/'),
                 'description': xpath.join('/')
@@ -50,7 +49,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
       return;
     case 'test':
       console.log("Results of " + request.path + " -->");
-      console.log(psychoxpath.evaluate_xpath(request.path));
+      console.log(p.evaluateXPath(request.path));
       console.log('<--');
       sendResponse({
         result: null
@@ -65,14 +64,14 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   }
   switch (request.act) {
     case 'absolute':
-      result = psychoxpath.get_abs_xpath(dwx_element, [], !request.attributes);
+      result = p.getXPath(dwx_element, [], !request.attributes);
       break;
     case 'table':
-      result = psychoxpath.get_abs_xpath(dwx_element, [], !request.attributes);
-      result = psychoxpath.last_of_type(result, 'table');
+      result = p.getXPath(dwx_element, [], !request.attributes);
+      result = p.lastOfType(result, 'table');
   }
   if (request.short) {
-    result = psychoxpath.shortest_xpath(result);
+    result = p.shortestXPath(result);
   }
   if (result && request.echo) {
     console.log(result);

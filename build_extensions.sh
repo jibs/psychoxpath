@@ -1,8 +1,11 @@
 #!/usr/bin/env sh
+###
+# (c) 2011 Tyler Kennedy <tk@tkte.ch>
+###
 
 # Build the core and copy it over
-coffee --bare --compile psychoxpath.coffee
+coffee --compile psychoxpath.coffee
 cp psychoxpath.js chrome
 
 # Build the individual components
-coffee --bare -o chrome/ -c chrome/
+coffee -o chrome/ -c chrome/

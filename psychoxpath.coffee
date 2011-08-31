@@ -3,42 +3,17 @@
 ###
 psychoxpath =
     ###
-    # Get the 1-based index of the node to its parent.
-    ###
-    node_position: (node) ->
-        count = 1
-        sibling = node.previousSibling
-        loop
-            if sibling.nodeType == node.ELEMENT_NODE
-                if sibling.nodeName == node.nodeName
-                    count++
-            sibling = sibling.previousSibling
-            break if not sibling?
-        return count
-
-    ###
-    # Returns true if the given node and attribute are
-    # unique in the document.
-    ###
-    node_unique_attribute: (node, att) ->
-        name = node.nodeName.toLowerCase()
-        q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
-        psychoxpath.evaluate_xpath(q).length == 1
-
-    ###
     # Returns a unique attribute selector for the given node,
     # if one exists.
     ###
-    node_unique: (node) ->
+    uniqueAttribute: (node, valid_tags) ->
+        # Default attributes to use for unique XPaths
+        valid_tags ?= ['id', 'class', 'font', 'color']
         for attribute in node.attributes
-            tag = attribute.nodeName
-            continue if tag not in [
-                'id', 'class', 'font', 'color'
-            ]
+            continue if attribute.nodeName not in  valid_tags
 
-            if psychoxpath.node_unique_attribute node, attribute
+            if @_uniqueAttribute node, attribute
                 return [attribute.nodeName, attribute.nodeValue]
-
         return [null, null]
 
     ###
@@ -46,40 +21,31 @@ psychoxpath =
     # If `position_only` is true, attributes will not be used
     # when building the path.
     ###
-    get_abs_xpath: (node, path, position_only) ->
+    getXPath: (node, path, position_only) ->
         path or= []
         position_only or= false
 
         # Recursively resolve down to the root node.
         if node.parentNode?
-            psychoxpath.get_abs_xpath(node.parentNode, path, position_only)
-
-        tmp = []
-        # We only want element nodes in our path
+            path = @getXPath(node.parentNode, path, position_only)
         if node.nodeType != node.ELEMENT_NODE
             return path
 
         name = node.nodeName.toLowerCase()
-        tmp.push name
+        tmp = [name,]
 
         if not position_only
             # If possible, try to find a unique attribute for the given
             # node.
-            [a_name, a_value] = psychoxpath.node_unique node
+            [a_name, a_value] = @uniqueAttribute node
             if a_name? or a_value?
                 tmp.push "[@#{ a_name }='#{ a_value }']"
                 path.push tmp.join('')
                 return path
 
         # No other siblings? Sweet...
-        if not node.previousSibling
-            path.push name
-            return path
-
-        # If nothing else, fall back to the node position
-        position = psychoxpath.node_position(node)
-        if position > 1
-            tmp.push "[#{ position }]"
+        if @_sameType node.previousSibling, node.nextSibling
+            tmp.push "[#{ @_getPosition(node) }]"
 
         path.push tmp.join('')
         return path
@@ -87,7 +53,7 @@ psychoxpath =
     ###
     # Returns the path up to the last occurance of `type`.
     ###
-    last_of_type: (path, type) ->
+    lastOfType: (path, type) ->
         for part in [path.length - 1..0] by -1
             tmp = path[part].toLowerCase()
             idx = tmp.indexOf('[')
@@ -100,37 +66,62 @@ psychoxpath =
     # Extremely silly way of getting the shortest path, again by brute
     # forcing it.
     ###
-    shortest_xpath: (path) ->
+    shortestXPath: (path) ->
         shortest = []
         for part in [path.length - 1..0] by -1
-            q = psychoxpath.evaluate_xpath("//#{ path[part] }")
+            q = @evaluateXPath("//#{ path[part] }")
             shortest.push path[part]
             break if q.length == 1
         shortest.reverse()
         return shortest
 
     ###
-    # Evaluate a basic (attribute and index only) XPath.
+    # Evaluate an XPath, returning a list of results.
+    # Results are ordered as they appear in the DOM.
     ###
-    evaluate_xpath: (path) ->
-        nodes = []
-        # See if we can use Webkit or Firefox's built-in
-        # ability to parse XPaths.
+    evaluateXPath: (path, context) ->
+        context or= document
+
+        # Use Webkit or Firefox's built-in ability to parse XPaths.
         if document.evaluate
             try
-                q = document.evaluate(
-                    path
-                    document
-                    null
-                    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE
-                    null
-                )
+                q = document.evaluate(path, context, null, 
+                    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null)
             catch error
                 return null
 
-            # Iterators don't actually work in Webkit, so a bit of a
-            # roundabout...
-            for x in [0..q.snapshotLength - 1]
-                nodes.push q.snapshotItem(x)
-            return nodes
+            # Iterators don't actually work in Webkit. Indexing works
+            # on all supported browsers.
+            return (q.snapshotItem(x) for x in [0..q.snapshotLength - 1])
+
+        # We aren't going to support IE for the moment...
         return null
+
+    # Helper method; returns `true` if both nodes are of the same 'type'.
+    _sameType: (left, right) ->
+        if left?.nodeType == right?.nodeType
+            if left?.nodeName == right?.nodeName
+                return true
+        return false
+
+    # Helper method; Get the 1-based index of the node relative to its
+    # parent and siblings of the same type.
+    _getPosition: (node) ->
+        count = 1
+        sibling = node.previousSibling
+        loop
+            if @_sameType sibling, node
+                count++
+            sibling = sibling.previousSibling
+            break if not sibling?
+        return count
+
+    # Helper method; Returns true if the given node and attribute are
+    # unique in the document.
+    _uniqueAttribute: (node, att) ->
+        name = node.nodeName.toLowerCase()
+        q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
+        @evaluateXPath(q).length == 1
+
+# Expose ourselves to the world
+(exports ? this).psychoxpath = psychoxpath

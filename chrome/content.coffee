@@ -1,9 +1,8 @@
 ###
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
-# 
-# Processes a request for XPaths within a tabs context.
 ###
 dwx_element = null
+p = psychoxpath
 
 ###
 # Event delegation to get the element being selected by
@@ -23,10 +22,10 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
         when 'autocomplete'
             results = null
 
-            tmp_results = psychoxpath.evaluate_xpath request.text
+            tmp_results = p.evaluateXPath request.text
             if tmp_results?
                 results = for tmp_result in tmp_results when tmp_result?
-                    xpath = psychoxpath.get_abs_xpath tmp_result, [], on
+                    xpath = p.getXPath tmp_result, [], off
                     {
                         'content': xpath.join('/')
                         'description': xpath.join('/')
@@ -36,7 +35,7 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
             return
         when 'test'
             console.log "Results of #{ request.path } -->"
-            console.log psychoxpath.evaluate_xpath(request.path)
+            console.log p.evaluateXPath(request.path)
             console.log '<--'
 
             sendResponse { result: null }
@@ -49,14 +48,14 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
 
     switch request.act
         when 'absolute'
-            result = psychoxpath.get_abs_xpath dwx_element,
+            result = p.getXPath dwx_element,
                 [], !request.attributes
         when 'table'
-            result = psychoxpath.get_abs_xpath dwx_element,
+            result = p.getXPath dwx_element,
                 [], !request.attributes
-            result = psychoxpath.last_of_type result, 'table'
+            result = p.lastOfType result, 'table'
 
-    result = psychoxpath.shortest_xpath result if request.short
+    result = p.shortestXPath result if request.short
     # We do this here so the output is logged to the correct window
     # without having to do a lookup.
     if result and request.echo
