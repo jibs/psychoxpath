@@ -14,7 +14,7 @@
     return element = e.target || e.srcElement;
   };
   chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
-    var path, q_results, result, results, _i, _j, _len, _len2, _ref;
+    var path, q_results, result, results, x, _i, _j, _len, _len2, _ref;
     if (!(request.act != null)) {
       sendResponse({});
     }
@@ -52,18 +52,18 @@
       return;
     } else if (request.act === 'highlight') {
       q_results = psychoxpath.evaluateXPath("//*[contains(@class, 'psychoxpath_highlight')]");
-      if ((q_results != null ? q_results.length : void 0) > 0) {
+      if (q_results != null ? q_results.length : void 0) {
         for (_i = 0, _len = q_results.length; _i < _len; _i++) {
-          result = q_results[_i];
-          result.className = result.className.replace(/\bpsychoxpath_highlight\b/, '');
+          x = q_results[_i];
+          x.className = x.className.replace(/\bpsychoxpath_highlight\b/, '');
         }
       }
       if (request != null ? request.path : void 0) {
         q_results = psychoxpath.evaluateXPath(request.path);
-        if ((q_results != null ? q_results.length : void 0) > 0) {
+        if (q_results != null ? q_results.length : void 0) {
           for (_j = 0, _len2 = q_results.length; _j < _len2; _j++) {
-            result = q_results[_j];
-            result.className = result.className + " psychoxpath_highlight";
+            x = q_results[_j];
+            x.className += " psychoxpath_highlight";
           }
         }
       }

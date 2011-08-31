@@ -2,10 +2,11 @@
   /*
   # (c) 2011 Tyler Kennedy <tk@tkte.ch>
   */
-  var absolute, attributes, clearHighlight, default_context, echoConsole, echo_console, message_and_save, positional, root, send_message, shortest, testXPath, testXPathHigh, to_clipboard, useClipboard, use_clipboard;
+  var absolute, attributes, clearHighlight, default_context, echoConsole, echo_console, highlightOnXPath, message_and_save, positional, root, send_message, shortest, testXPath, testXPathHigh, to_clipboard, useClipboard, use_clipboard, use_highlight;
   attributes = true;
   echo_console = true;
   use_clipboard = true;
+  use_highlight = true;
   /*
   # Copy the contents of `text` to the clipboard.
   */
@@ -25,14 +26,26 @@
   */
   message_and_save = function(tab, message) {
     return send_message(tab, message, function(response) {
-      if (!(response.results != null)) {
+      var path, _ref;
+      path = response != null ? (_ref = response.results) != null ? _ref.join('') : void 0 : void 0;
+      if (!path) {
         return;
       }
-      return to_clipboard(response.results.join(''));
+      to_clipboard(path);
+      if (use_highlight) {
+        return send_message(tab, {
+          act: 'highlight',
+          path: path
+        });
+      }
     });
   };
+  /*
+  # Sends a message to the given tab, filling in defaults and
+  # optionally calling a callback.
+  */
   send_message = function(tab, message, callback) {
-    var _ref, _ref2, _ref3;
+    var _ref, _ref2, _ref3, _ref4;
     if ((_ref = message.attributes) == null) {
       message.attributes = attributes;
     }
@@ -42,6 +55,9 @@
     if ((_ref3 = message.echo) == null) {
       message.echo = echo_console;
     }
+    if ((_ref4 = message.highlight) == null) {
+      message.highlight = use_highlight;
+    }
     return chrome.tabs.sendRequest(tab.id, message, function(response) {
       if (callback) {
         return callback(response);
@@ -49,7 +65,7 @@
     });
   };
   /*
-  # Autocompletion support for XPaths
+  # Omnibox highlighting and suggestion support for XPaths.
   */
   chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
     if (!text) {
@@ -61,12 +77,22 @@
         text: text
       }, function(response) {
         var _ref;
-        if (((_ref = response.results) != null ? _ref.length : void 0) > 0) {
-          return suggest(response.results);
+        if (!((_ref = response.results) != null ? _ref.length : void 0)) {
+          return;
+        }
+        suggest(response.results);
+        if (use_highlight) {
+          return send_message(tab, {
+            act: 'highlight',
+            path: text
+          });
         }
       });
     });
   });
+  /*
+  # Highlight and store the choosen XPath (from the omnibox).
+  */
   chrome.omnibox.onInputEntered.addListener(function(text) {
     return chrome.tabs.getSelected(null, function(tab) {
       send_message(tab, {
@@ -74,6 +100,16 @@
         path: text
       });
       return to_clipboard(text);
+    });
+  });
+  /*
+  # Erase existing highlights. 
+  */
+  chrome.omnibox.onInputCancelled.addListener(function() {
+    return chrome.tabs.getSelected(null, function(tab) {
+      return send_message(tab, {
+        act: 'highlight'
+      });
     });
   });
   default_context = ['all'];
@@ -145,8 +181,7 @@
     contexts: default_context,
     onclick: function(info, tab) {
       return send_message(tab, {
-        act: 'highlight',
-        path: ''
+        act: 'highlight'
       });
     }
   });
@@ -183,6 +218,16 @@
     checked: use_clipboard,
     onclick: function(info, tab) {
       return use_clipboard = info.checked;
+    }
+  });
+  highlightOnXPath = chrome.contextMenus.create({
+    title: 'Highlight Matching Elements',
+    parentId: root,
+    contexts: default_context,
+    type: 'checkbox',
+    checked: use_highlight,
+    onclick: function(info, tab) {
+      return use_highlight = info.checked;
     }
   });
 }).call(this);

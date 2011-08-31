@@ -44,23 +44,19 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
             results: results ? []
         }
         return
-    # Visually highlight all matching elements.
+    # Visually highlight elements matching a given XPath.
     else if request.act == 'highlight'
-        # Erase all existing highlights
+        # Erase any existing highlights
         q_results = psychoxpath.evaluateXPath "//*[contains(@class, 'psychoxpath_highlight')]"
-        if q_results?.length > 0
-            for result in q_results
-                result.className = result.className.replace(
-                    /\bpsychoxpath_highlight\b/
-                    ''
-                )
+        if q_results?.length
+            x.className = x.className.replace /\bpsychoxpath_highlight\b/, '' for x in q_results
         
         # Highlight the new matches
         if request?.path
             q_results = psychoxpath.evaluateXPath request.path
-            if q_results?.length > 0
-                for result in q_results
-                    result.className = result.className + " psychoxpath_highlight"
+            if q_results?.length
+                x.className += " psychoxpath_highlight" for x in q_results
+
         sendResponse {}
         return
 
@@ -72,7 +68,7 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
     if results? and request?.short
         results = psychoxpath.shortestXPath results
 
-    # Optionally dump the XPath to the console
+    # Optionally dump the XPath to the current tabs console
     if results? and request?.echo
         console.log results.join('')
 

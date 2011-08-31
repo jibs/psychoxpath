@@ -4,11 +4,13 @@
 attributes = on
 echo_console = on
 use_clipboard = on
+use_highlight = on
 
 ###
 # Copy the contents of `text` to the clipboard.
 ###
 to_clipboard = (text) ->
+    # User doesn't want anything on their clipboard
     return if not use_clipboard
 
     textarea = document.getElementById "copy-workaround"
@@ -22,30 +24,49 @@ to_clipboard = (text) ->
 ###
 message_and_save = (tab, message) ->
     send_message tab, message, (response) ->
-        return if not response.results?
-        to_clipboard response.results.join('')
+        path = response?.results?.join('')
+        return if not path
+        to_clipboard path 
+        send_message(tab, { act: 'highlight', path: path }) if use_highlight
 
+###
+# Sends a message to the given tab, filling in defaults and
+# optionally calling a callback.
+###
 send_message = (tab, message, callback) ->
     message.attributes ?= attributes
     message.short ?= off
     message.echo ?= echo_console
+    message.highlight ?= use_highlight
 
     chrome.tabs.sendRequest tab.id, message, (response) ->
         callback(response) if callback
 
 ###
-# Autocompletion support for XPaths
+# Omnibox highlighting and suggestion support for XPaths.
 ###
 chrome.omnibox.onInputChanged.addListener (text, suggest) ->
     return if not text
     chrome.tabs.getSelected null, (tab) ->
         send_message tab, { act: 'autocomplete', text: text }, (response) ->
-            suggest(response.results) if response.results?.length > 0
+            return if not response.results?.length
+            suggest(response.results) 
+            send_message(tab, { act: 'highlight', path: text }) if use_highlight
 
+###
+# Highlight and store the choosen XPath (from the omnibox).
+###
 chrome.omnibox.onInputEntered.addListener (text) ->
     chrome.tabs.getSelected null, (tab) ->
         send_message tab, { act: 'highlight', path: text }
         to_clipboard text
+
+###
+# Erase existing highlights. 
+###
+chrome.omnibox.onInputCancelled.addListener ->
+    chrome.tabs.getSelected null, (tab) ->
+        send_message tab, { act: 'highlight' }
 
 # When our contextual menu should show
 default_context = ['all']
@@ -102,7 +123,7 @@ clearHighlight = chrome.contextMenus.create({
     parentId: root
     contexts: default_context
     onclick: (info, tab) ->
-        send_message tab, { act: 'highlight', path: ''}
+        send_message tab, { act: 'highlight' }
 })
 
 chrome.contextMenus.create({
@@ -139,4 +160,14 @@ useClipboard = chrome.contextMenus.create({
     checked: use_clipboard 
     onclick: (info, tab) ->
         use_clipboard = info.checked
+})
+
+highlightOnXPath = chrome.contextMenus.create({
+    title: 'Highlight Matching Elements'
+    parentId: root
+    contexts: default_context
+    type: 'checkbox'
+    checked: use_highlight
+    onclick: (info, tab) ->
+        use_highlight = info.checked
 })
