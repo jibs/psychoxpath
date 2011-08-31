@@ -45,14 +45,31 @@ send_message = function(tab, message, callback) {
     message.echo = echo_console;
   }
   return chrome.tabs.sendRequest(tab.id, message, function(response) {
-    if (!(response != null) || !(response.result != null)) {
-      return;
-    }
-    if (callback != null) {
+    if (callback) {
       return callback(response);
     }
   });
 };
+/*
+# Autocompletion support for XPaths
+*/
+chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
+  if (!text) {
+    return;
+  }
+  return chrome.tabs.getSelected(null, function(tab) {
+    return send_message(tab, {
+      act: 'autocomplete',
+      text: text
+    }, function(response) {
+      var _ref;
+      console.log(response);
+      if (((_ref = response.result) != null ? _ref.length : void 0) > 0) {
+        return suggest(response.result);
+      }
+    });
+  });
+});
 menu = {
   echoConsole: function(info, tab) {
     return echo_console = info.checked;

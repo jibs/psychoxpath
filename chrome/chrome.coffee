@@ -37,10 +37,19 @@ send_message = (tab, message, callback) ->
     message.echo ?= echo_console
 
     chrome.tabs.sendRequest tab.id, message, (response) ->
-        if not response? or not response.result?
-            return
-        if callback?
+        if callback
             callback response
+
+###
+# Autocompletion support for XPaths
+###
+chrome.omnibox.onInputChanged.addListener (text, suggest) ->
+    return if not text
+
+    chrome.tabs.getSelected null, (tab) ->
+        send_message tab, { act: 'autocomplete', text: text }, (response) ->
+            console.log response
+            suggest(response.result) if response.result?.length > 0
 
 # Contextual menu callbacks
 menu =

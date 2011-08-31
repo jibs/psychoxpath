@@ -33,7 +33,7 @@ psychoxpath =
         for attribute in node.attributes
             tag = attribute.nodeName
             continue if tag not in [
-                'id', 'class'
+                'id', 'class', 'font', 'color'
             ]
 
             if psychoxpath.node_unique_attribute node, attribute
@@ -86,12 +86,6 @@ psychoxpath =
 
     ###
     # Returns the path up to the last occurance of `type`.
-    # Takes:
-    #   path: list of path componenets
-    #   type: node type to search for
-    # Returns:
-    #   List of path componenets up to the last occuring `type`, or the
-    #   original path unmodified if it does not exist in the path.
     ###
     last_of_type: (path, type) ->
         for part in [path.length - 1..0] by -1
@@ -123,17 +117,20 @@ psychoxpath =
         # See if we can use Webkit or Firefox's built-in
         # ability to parse XPaths.
         if document.evaluate
-            q = document.evaluate(
-                path
-                document
-                null
-                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE
-                null
-            )
+            try
+                q = document.evaluate(
+                    path
+                    document
+                    null
+                    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE
+                    null
+                )
+            catch error
+                return null
+
             # Iterators don't actually work in Webkit, so a bit of a
             # roundabout...
             for x in [0..q.snapshotLength - 1]
                 nodes.push q.snapshotItem(x)
-
             return nodes
         return null

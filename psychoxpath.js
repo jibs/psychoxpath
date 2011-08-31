@@ -43,7 +43,7 @@ psychoxpath = {
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       attribute = _ref[_i];
       tag = attribute.nodeName;
-      if (tag !== 'id' && tag !== 'class') {
+      if (tag !== 'id' && tag !== 'class' && tag !== 'font' && tag !== 'color') {
         continue;
       }
       if (psychoxpath.node_unique_attribute(node, attribute)) {
@@ -91,12 +91,6 @@ psychoxpath = {
   },
   /*
       # Returns the path up to the last occurance of `type`.
-      # Takes:
-      #   path: list of path componenets
-      #   type: node type to search for
-      # Returns:
-      #   List of path componenets up to the last occuring `type`, or the
-      #   original path unmodified if it does not exist in the path.
       */
   last_of_type: function(path, type) {
     var idx, part, tmp, _ref;
@@ -136,7 +130,11 @@ psychoxpath = {
     var nodes, q, x, _ref;
     nodes = [];
     if (document.evaluate) {
-      q = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      try {
+        q = document.evaluate(path, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      } catch (error) {
+        return null;
+      }
       for (x = 0, _ref = q.snapshotLength - 1; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
         nodes.push(q.snapshotItem(x));
       }
