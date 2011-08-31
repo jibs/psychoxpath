@@ -14,53 +14,90 @@
         # Returns a unique attribute selector for the given node,
         # if one exists.
         */
-    uniqueAttribute: function(node, valid_tags) {
-      var attribute, _i, _len, _ref, _ref2;
-      if (valid_tags == null) {
-        valid_tags = ['id', 'class', 'font', 'color'];
+    uniqueAttribute: function(node, options) {
+      var attr, attrName, attrValue, attribute, cl, classes, defaults, nodeName, q, val, _i, _j, _len, _len2, _ref, _ref2, _ref3, _ref4, _ref5;
+      defaults = {
+        includeTags: ['id', 'class', 'font', 'color'],
+        excludeClasses: []
+      };
+      for (attr in options) {
+        val = options[attr];
+        if (val != null) {
+          defaults[attr] = val;
+        }
       }
       _ref = node.attributes;
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         attribute = _ref[_i];
-        if (_ref2 = attribute.nodeName, __indexOf.call(valid_tags, _ref2) < 0) {
+        if ((_ref2 = (_ref3 = attribute.nodeName, __indexOf.call(defaults.includeTags, _ref3) < 0)) != null ? _ref2 : []) {
           continue;
         }
-        if (psychoxpath._uniqueAttribute(node, attribute)) {
-          return [attribute.nodeName, attribute.nodeValue];
+        nodeName = node.nodeName.toLowerCase();
+        attrName = attribute.nodeName.toLowerCase();
+        attrValue = attribute.nodeValue;
+        switch (attrName) {
+          case 'class':
+            classes = attrValue.split(' ');
+            for (_j = 0, _len2 = classes.length; _j < _len2; _j++) {
+              cl = classes[_j];
+              if (__indexOf.call(defaults.excludeClasses, cl) < 0) {
+                q = "//" + nodeName + "[contains(concat(' ', @class, ' '), ' " + cl + " ')]";
+                if (((_ref4 = psychoxpath.evaluateXPath(q)) != null ? _ref4.length : void 0) === 1) {
+                  return "[contains(concat(' ', @class, ' '), ' " + cl + " ')]";
+                }
+              }
+            }
+            break;
+          default:
+            q = "//" + nodeName + "[@" + attrName + "='" + attrValue + "']";
+            if (((_ref5 = psychoxpath.evaluateXPath(q)) != null ? _ref5.length : void 0) === 1) {
+              return "[@" + attrName + "='" + attrValue + "']";
+            }
         }
       }
-      return [null, null];
+      return null;
     },
     /*
         # Get the absolute XPath for the given node.
         # If `position_only` is true, attributes will not be used
         # when building the path.
         */
-    getXPath: function(node, path, position_only) {
-      var a_name, a_value, name, tmp, _ref;
-      path || (path = []);
-      position_only || (position_only = false);
+    getXPath: function(node, options) {
+      var attr, defaults, name, q, tmp, val;
+      defaults = {
+        useAttributes: true,
+        includeTags: null,
+        excludeClasses: null,
+        path: []
+      };
+      for (attr in options) {
+        val = options[attr];
+        if (val != null) {
+          defaults[attr] = val;
+        }
+      }
       if (node.parentNode != null) {
-        path = psychoxpath.getXPath(node.parentNode, path, position_only);
+        defaults.path = psychoxpath.getXPath(node.parentNode, defaults);
       }
       if (node.nodeType !== node.ELEMENT_NODE) {
-        return path;
+        return defaults.path;
       }
       name = node.nodeName.toLowerCase();
       tmp = ["/" + name];
-      if (!position_only) {
-        _ref = psychoxpath.uniqueAttribute(node), a_name = _ref[0], a_value = _ref[1];
-        if ((a_name != null) && (a_value != null)) {
-          tmp.push("[@" + a_name + "='" + a_value + "']");
-          path.push(tmp.join(''));
-          return path;
+      if (defaults.useAttributes) {
+        q = psychoxpath.uniqueAttribute(node, {
+          includeTags: defaults.includeTags,
+          excludeClasses: defaults.excludeClasses
+        });
+        if (q != null) {
+          tmp.push(q);
+          defaults.path.push(tmp.join(''));
+          return defaults.path;
         }
       }
-      if (psychoxpath._sameType(node.previousSibling, node.nextSibling)) {
-        tmp.push("[" + (psychoxpath._getPosition(node)) + "]");
-      }
-      path.push(tmp.join(''));
-      return path;
+      tmp.push("[" + (psychoxpath._getPosition(node)) + "]");
+      defaults.path.push(tmp.join(''));
+      return defaults.path;
     },
     /*
         # Extremely silly way of getting a short(er) path.
@@ -125,12 +162,6 @@
         sibling = sibling.previousSibling;
       }
       return count;
-    },
-    _uniqueAttribute: function(node, att) {
-      var name, q;
-      name = node.nodeName.toLowerCase();
-      q = "//" + name + "[@" + att.nodeName + "='" + att.nodeValue + "']";
-      return psychoxpath.evaluateXPath(q).length === 1;
     },
     _relative: function(sub) {
       return sub.indexOf('//' === 0);

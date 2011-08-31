@@ -35,7 +35,11 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
             q_results = psychoxpath.evaluateXPath request.text
             if q_results?.length > 0
                 results = for result in q_results[..15]
-                    path = psychoxpath.getXPath result, [], !request.attributes ? false
+                    path = psychoxpath.getXPath(result, {
+                        useAttributes: request.attributes ? on
+                    })
+                    
+                    #result, [], !request.attributes ? false
                     path = psychoxpath.shortestXPath path
                     path = path.join('')
                     { content: path, description: path }
@@ -49,7 +53,7 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
         # Erase any existing highlights
         q_results = psychoxpath.evaluateXPath "//*[contains(@class, 'psychoxpath_highlight')]"
         if q_results?.length
-            x.className = x.className.replace /\bpsychoxpath_highlight\b/, '' for x in q_results
+            x.className = x.className.replace /(\W|\b)psychoxpath_highlight\b/, '' for x in q_results
         
         # Highlight the new matches
         if request?.path
@@ -62,7 +66,9 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
 
     # Get the XPath for the currently selected element
     if request.act == 'get'
-        results = psychoxpath.getXPath element, [], !request.attributes ? false
+        results = psychoxpath.getXPath(element, {
+            useAttributes: request.attributes ? on
+        })
 
     # Optionally attempt to shorten the resulting XPath
     if results? and request?.short

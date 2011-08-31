@@ -34,7 +34,9 @@
             _results = [];
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               result = _ref[_i];
-              path = psychoxpath.getXPath(result, [], (_ref2 = !request.attributes) != null ? _ref2 : false);
+              path = psychoxpath.getXPath(result, {
+                useAttributes: (_ref2 = request.attributes) != null ? _ref2 : true
+              });
               path = psychoxpath.shortestXPath(path);
               path = path.join('');
               _results.push({
@@ -55,7 +57,7 @@
       if (q_results != null ? q_results.length : void 0) {
         for (_i = 0, _len = q_results.length; _i < _len; _i++) {
           x = q_results[_i];
-          x.className = x.className.replace(/\bpsychoxpath_highlight\b/, '');
+          x.className = x.className.replace(/(\W|\b)psychoxpath_highlight\b/, '');
         }
       }
       if (request != null ? request.path : void 0) {
@@ -71,7 +73,9 @@
       return;
     }
     if (request.act === 'get') {
-      results = psychoxpath.getXPath(element, [], (_ref = !request.attributes) != null ? _ref : false);
+      results = psychoxpath.getXPath(element, {
+        useAttributes: (_ref = request.attributes) != null ? _ref : true
+      });
     }
     if ((results != null) && (request != null ? request.short : void 0)) {
       results = psychoxpath.shortestXPath(results);

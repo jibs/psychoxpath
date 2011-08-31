@@ -78,6 +78,11 @@
       }, function(response) {
         var _ref;
         if (!((_ref = response.results) != null ? _ref.length : void 0)) {
+          if (use_highlight) {
+            send_message(tab, {
+              act: 'highlight'
+            });
+          }
           return;
         }
         suggest(response.results);

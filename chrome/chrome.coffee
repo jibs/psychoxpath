@@ -49,7 +49,10 @@ chrome.omnibox.onInputChanged.addListener (text, suggest) ->
     return if not text
     chrome.tabs.getSelected null, (tab) ->
         send_message tab, { act: 'autocomplete', text: text }, (response) ->
-            return if not response.results?.length
+            if not response.results?.length
+                send_message(tab, { act: 'highlight'}) if use_highlight
+                return
+
             suggest(response.results) 
             send_message(tab, { act: 'highlight', path: text }) if use_highlight
 

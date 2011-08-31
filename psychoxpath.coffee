@@ -6,49 +6,86 @@ psychoxpath =
     # Returns a unique attribute selector for the given node,
     # if one exists.
     ###
-    uniqueAttribute: (node, valid_tags) ->
-        # Default attributes to use for unique XPaths
-        valid_tags ?= ['id', 'class', 'font', 'color']
-        for attribute in node.attributes
-            continue if attribute.nodeName not in valid_tags
+    uniqueAttribute: (node, options) ->
+        defaults = {
+            # A list of attributes to test for uniqueness.
+            includeTags: ['id', 'class', 'font', 'color']
+            # A list of (lower case) classes to exclude for uniquness.
+            excludeClasses: []
+        }
+        defaults[attr] = val for attr, val of options when val?
 
-            if psychoxpath._uniqueAttribute node, attribute
-                return [attribute.nodeName, attribute.nodeValue]
-        return [null, null]
+        for attribute in node.attributes
+            continue if attribute.nodeName not in defaults.includeTags ? []
+
+            nodeName = node.nodeName.toLowerCase()
+            attrName = attribute.nodeName.toLowerCase()
+            attrValue = attribute.nodeValue
+
+            switch attrName
+                # Do specific optimizations for classes to make them a bit more
+                # likely to match.
+                when 'class'
+                    classes = attrValue.split ' '
+                    for cl in classes when cl not in defaults.excludeClasses
+                        q = "//#{ nodeName }[contains(concat(' ', @class, ' '), ' #{ cl } ')]"
+                        if psychoxpath.evaluateXPath(q)?.length == 1
+                            return "[contains(concat(' ', @class, ' '), ' #{ cl } ')]"
+              
+                # Resort to key==value if we don't have anything else
+                else
+                    q = "//#{ nodeName }[@#{ attrName }='#{ attrValue }']"
+                    if psychoxpath.evaluateXPath(q)?.length == 1
+                        return "[@#{ attrName }='#{ attrValue }']"
+
+        return null
 
     ###
     # Get the absolute XPath for the given node.
     # If `position_only` is true, attributes will not be used
     # when building the path.
     ###
-    getXPath: (node, path, position_only) ->
-        path or= []
-        position_only or= false
+    getXPath: (node, options) ->
+        defaults = {
+            # Use attributes when creating uniques paths.
+            useAttributes: on
+            # A list of attributes to use for finding unique paths.
+            includeTags: null
+            # A list of classes to discard when finding unique paths. This is
+            # for compatibility with DOM extensions that add classes.
+            excludeClasses: null
+            # Starting path as a list of XPath segments
+            path: []
+        }
+        defaults[attr] = val for attr, val of options when val?
 
         # Recursively resolve down to the root node.
         if node.parentNode?
-            path = psychoxpath.getXPath(node.parentNode, path, position_only)
+            defaults.path = psychoxpath.getXPath(node.parentNode, defaults)
         if node.nodeType != node.ELEMENT_NODE
-            return path
+            return defaults.path
 
         name = node.nodeName.toLowerCase()
         tmp = ["/#{ name }",]
 
-        if not position_only
+        if defaults.useAttributes
             # If possible, try to find a unique attribute for the given
             # node.
-            [a_name, a_value] = psychoxpath.uniqueAttribute node
-            if a_name? and a_value?
-                tmp.push "[@#{ a_name }='#{ a_value }']"
-                path.push tmp.join('')
-                return path
+            q = psychoxpath.uniqueAttribute(node, {
+                includeTags: defaults.includeTags
+                excludeClasses: defaults.excludeClasses
+            })
+            if q?
+                tmp.push q
+                defaults.path.push tmp.join('')
+                return defaults.path
 
         # No other siblings? Sweet...
-        if psychoxpath._sameType node.previousSibling, node.nextSibling
-            tmp.push "[#{ psychoxpath._getPosition(node) }]"
+            #if psychoxpath._sameType node.previousSibling, node.nextSibling
+        tmp.push "[#{ psychoxpath._getPosition(node) }]"
 
-        path.push tmp.join('')
-        return path
+        defaults.path.push tmp.join('')
+        return defaults.path
 
     ###
     # Extremely silly way of getting a short(er) path.
@@ -107,13 +144,6 @@ psychoxpath =
                 count++
             sibling = sibling.previousSibling
         return count
-
-    # Helper method; Returns true if the given node and attribute are
-    # unique in the document.
-    _uniqueAttribute: (node, att) ->
-        name = node.nodeName.toLowerCase()
-        q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
-        psychoxpath.evaluateXPath(q).length == 1
 
     # Helper method; Returns `true` if XPath subset is relative.
     _relative: (sub) -> sub.indexOf '//' == 0
