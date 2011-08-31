@@ -16,6 +16,7 @@
     },
     "background_page": "background.html",
     "content_scripts": [{
+        "run_at": "document_end",
         "matches": ["http://*/*", "https://*/*"],
         "js": [
             "psychoxpath.js",
