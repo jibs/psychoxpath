@@ -1,5 +1,5 @@
 /*
-# (c) 2011 Tyler Kennedy <tk@tkte.ch>
+# (c) 2011 Tyler Kennedy <tkpsychoxpath.tkte.ch>
 */
 var psychoxpath;
 var __indexOf = Array.prototype.indexOf || function(item) {
@@ -24,7 +24,7 @@ psychoxpath = {
       if (_ref2 = attribute.nodeName, __indexOf.call(valid_tags, _ref2) < 0) {
         continue;
       }
-      if (this._uniqueAttribute(node, attribute)) {
+      if (psychoxpath._uniqueAttribute(node, attribute)) {
         return [attribute.nodeName, attribute.nodeValue];
       }
     }
@@ -40,23 +40,23 @@ psychoxpath = {
     path || (path = []);
     position_only || (position_only = false);
     if (node.parentNode != null) {
-      path = this.getXPath(node.parentNode, path, position_only);
+      path = psychoxpath.getXPath(node.parentNode, path, position_only);
     }
     if (node.nodeType !== node.ELEMENT_NODE) {
       return path;
     }
     name = node.nodeName.toLowerCase();
-    tmp = [name];
+    tmp = ["/" + name];
     if (!position_only) {
-      _ref = this.uniqueAttribute(node), a_name = _ref[0], a_value = _ref[1];
-      if ((a_name != null) || (a_value != null)) {
+      _ref = psychoxpath.uniqueAttribute(node), a_name = _ref[0], a_value = _ref[1];
+      if ((a_name != null) && (a_value != null)) {
         tmp.push("[@" + a_name + "='" + a_value + "']");
         path.push(tmp.join(''));
         return path;
       }
     }
-    if (this._sameType(node.previousSibling, node.nextSibling)) {
-      tmp.push("[" + (this._getPosition(node)) + "]");
+    if (psychoxpath._sameType(node.previousSibling, node.nextSibling)) {
+      tmp.push("[" + (psychoxpath._getPosition(node)) + "]");
     }
     path.push(tmp.join(''));
     return path;
@@ -79,21 +79,22 @@ psychoxpath = {
     return path;
   },
   /*
-      # Extremely silly way of getting the shortest path, again by brute
-      # forcing it.
+      # Extremely silly way of getting a short(er) path.
       */
   shortestXPath: function(path) {
-    var part, q, shortest, _ref;
-    shortest = [];
-    for (part = _ref = path.length - 1; part >= 0; part += -1) {
-      q = this.evaluateXPath("//" + path[part]);
-      shortest.push(path[part]);
-      if (q.length === 1) {
+    var copy, q, root, sub, target, x, _ref;
+    copy = path.slice(0, path.length);
+    root = [];
+    target = psychoxpath.evaluateXPath(path.join(''));
+    for (x = _ref = copy.length - 1; x >= 0; x += -1) {
+      sub = "//" + (psychoxpath._noPrefix(path[x]));
+      root.unshift(sub);
+      q = psychoxpath.evaluateXPath(root.join(''));
+      if (!(q != null) || (q != null ? q.length : void 0) === 1) {
         break;
       }
     }
-    shortest.reverse();
-    return shortest;
+    return root;
   },
   /*
       # Evaluate an XPath, returning a list of results.
@@ -108,11 +109,13 @@ psychoxpath = {
       } catch (error) {
         return null;
       }
-      _results = [];
-      for (x = 0, _ref = q.snapshotLength - 1; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
-        _results.push(q.snapshotItem(x));
+      if (q.snapshotLength > 0) {
+        _results = [];
+        for (x = 0, _ref = q.snapshotLength - 1; 0 <= _ref ? x <= _ref : x >= _ref; 0 <= _ref ? x++ : x--) {
+          _results.push(q.snapshotItem(x));
+        }
+        return _results;
       }
-      return _results;
     }
     return null;
   },
@@ -129,13 +132,13 @@ psychoxpath = {
     count = 1;
     sibling = node.previousSibling;
     while (true) {
-      if (this._sameType(sibling, node)) {
-        count++;
-      }
-      sibling = sibling.previousSibling;
       if (!(sibling != null)) {
         break;
       }
+      if (psychoxpath._sameType(sibling, node)) {
+        count++;
+      }
+      sibling = sibling.previousSibling;
     }
     return count;
   },
@@ -143,7 +146,22 @@ psychoxpath = {
     var name, q;
     name = node.nodeName.toLowerCase();
     q = "//" + name + "[@" + att.nodeName + "='" + att.nodeValue + "']";
-    return this.evaluateXPath(q).length === 1;
+    return psychoxpath.evaluateXPath(q).length === 1;
+  },
+  _relative: function(sub) {
+    return sub.indexOf('//' === 0);
+  },
+  _absolute: function(sub) {
+    return sub.indexOf('/') === 0;
+  },
+  _noPrefix: function(sub) {
+    if (psychoxpath._absolute(sub)) {
+      return sub.substring(1);
+    } else if (psychoxpath._relative(sub)) {
+      return sub.substring(2);
+    } else {
+      return sub;
+    }
   }
 };
 (typeof exports !== "undefined" && exports !== null ? exports : this).psychoxpath = psychoxpath;

@@ -1,5 +1,5 @@
 ###
-# (c) 2011 Tyler Kennedy <tk@tkte.ch>
+# (c) 2011 Tyler Kennedy <tkpsychoxpath.tkte.ch>
 ###
 psychoxpath =
     ###
@@ -10,9 +10,9 @@ psychoxpath =
         # Default attributes to use for unique XPaths
         valid_tags ?= ['id', 'class', 'font', 'color']
         for attribute in node.attributes
-            continue if attribute.nodeName not in  valid_tags
+            continue if attribute.nodeName not in valid_tags
 
-            if @_uniqueAttribute node, attribute
+            if psychoxpath._uniqueAttribute node, attribute
                 return [attribute.nodeName, attribute.nodeValue]
         return [null, null]
 
@@ -27,25 +27,25 @@ psychoxpath =
 
         # Recursively resolve down to the root node.
         if node.parentNode?
-            path = @getXPath(node.parentNode, path, position_only)
+            path = psychoxpath.getXPath(node.parentNode, path, position_only)
         if node.nodeType != node.ELEMENT_NODE
             return path
 
         name = node.nodeName.toLowerCase()
-        tmp = [name,]
+        tmp = ["/#{ name }",]
 
         if not position_only
             # If possible, try to find a unique attribute for the given
             # node.
-            [a_name, a_value] = @uniqueAttribute node
-            if a_name? or a_value?
+            [a_name, a_value] = psychoxpath.uniqueAttribute node
+            if a_name? and a_value?
                 tmp.push "[@#{ a_name }='#{ a_value }']"
                 path.push tmp.join('')
                 return path
 
         # No other siblings? Sweet...
-        if @_sameType node.previousSibling, node.nextSibling
-            tmp.push "[#{ @_getPosition(node) }]"
+        if psychoxpath._sameType node.previousSibling, node.nextSibling
+            tmp.push "[#{ psychoxpath._getPosition(node) }]"
 
         path.push tmp.join('')
         return path
@@ -63,17 +63,20 @@ psychoxpath =
         return path
 
     ###
-    # Extremely silly way of getting the shortest path, again by brute
-    # forcing it.
+    # Extremely silly way of getting a short(er) path.
     ###
     shortestXPath: (path) ->
-        shortest = []
-        for part in [path.length - 1..0] by -1
-            q = @evaluateXPath("//#{ path[part] }")
-            shortest.push path[part]
-            break if q.length == 1
-        shortest.reverse()
-        return shortest
+        copy = path[0...path.length]
+        root = []
+        target = psychoxpath.evaluateXPath(path.join(''))
+
+        for x in [copy.length - 1..0] by -1
+            sub = "//#{ psychoxpath._noPrefix(path[x]) }"
+            root.unshift(sub)
+            q = psychoxpath.evaluateXPath(root.join(''))
+            if not q? or q?.length == 1
+                break
+        return root
 
     ###
     # Evaluate an XPath, returning a list of results.
@@ -92,7 +95,8 @@ psychoxpath =
 
             # Iterators don't actually work in Webkit. Indexing works
             # on all supported browsers.
-            return (q.snapshotItem(x) for x in [0..q.snapshotLength - 1])
+            if q.snapshotLength > 0
+                return (q.snapshotItem(x) for x in [0..q.snapshotLength - 1])
 
         # We aren't going to support IE for the moment...
         return null
@@ -110,10 +114,10 @@ psychoxpath =
         count = 1
         sibling = node.previousSibling
         loop
-            if @_sameType sibling, node
+            break if not sibling?
+            if psychoxpath._sameType sibling, node
                 count++
             sibling = sibling.previousSibling
-            break if not sibling?
         return count
 
     # Helper method; Returns true if the given node and attribute are
@@ -121,7 +125,23 @@ psychoxpath =
     _uniqueAttribute: (node, att) ->
         name = node.nodeName.toLowerCase()
         q = "//#{ name }[@#{ att.nodeName }='#{ att.nodeValue }']"
-        @evaluateXPath(q).length == 1
+        psychoxpath.evaluateXPath(q).length == 1
+
+    # Helper method; Returns `true` if XPath subset is relative.
+    _relative: (sub) -> sub.indexOf '//' == 0
+
+    # Helper method; Returns `true` if XPath subset is absolute.
+    _absolute: (sub) -> sub.indexOf('/') == 0
+
+    # Helper method; Removes prefix and returns modified string.
+    _noPrefix: (sub) ->
+        if psychoxpath._absolute sub
+            sub.substring 1 
+        else if psychoxpath._relative sub
+            sub.substring 2
+        else
+            sub
+
 
 # Expose ourselves to the world
 (exports ? this).psychoxpath = psychoxpath
