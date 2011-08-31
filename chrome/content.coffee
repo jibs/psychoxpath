@@ -28,10 +28,9 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
 
         sendResponse({})
         return
-
     # Return a list of the first 15 items in the DOM that
     # match an XPath.
-    if request.act == 'autocomplete'
+    else if request.act == 'autocomplete'
         if request?.text
             q_results = psychoxpath.evaluateXPath request.text
             if q_results?.length > 0
@@ -40,12 +39,29 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
                     path = psychoxpath.shortestXPath path
                     path = path.join('')
                     { content: path, description: path }
-        else
-            results = []
 
         sendResponse {
-            results: results
+            results: results ? []
         }
+        return
+    # Visually highlight all matching elements.
+    else if request.act == 'highlight'
+        # Erase all existing highlights
+        q_results = psychoxpath.evaluateXPath "//*[contains(@class, 'psychoxpath_highlight')]"
+        if q_results?.length > 0
+            for result in q_results
+                result.className = result.className.replace(
+                    /\bpsychoxpath_highlight\b/
+                    ''
+                )
+        
+        # Highlight the new matches
+        if request?.path
+            q_results = psychoxpath.evaluateXPath request.path
+            if q_results?.length > 0
+                for result in q_results
+                    result.className = result.className + " psychoxpath_highlight"
+        sendResponse {}
         return
 
     # Get the XPath for the currently selected element

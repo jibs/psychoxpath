@@ -14,7 +14,7 @@
     return element = e.target || e.srcElement;
   };
   chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
-    var path, q_results, result, results, _ref;
+    var path, q_results, result, results, _i, _j, _len, _len2, _ref;
     if (!(request.act != null)) {
       sendResponse({});
     }
@@ -24,8 +24,7 @@
       console.log("<=== ]");
       sendResponse({});
       return;
-    }
-    if (request.act === 'autocomplete') {
+    } else if (request.act === 'autocomplete') {
       if (request != null ? request.text : void 0) {
         q_results = psychoxpath.evaluateXPath(request.text);
         if ((q_results != null ? q_results.length : void 0) > 0) {
@@ -46,12 +45,29 @@
             return _results;
           })();
         }
-      } else {
-        results = [];
       }
       sendResponse({
-        results: results
+        results: results != null ? results : []
       });
+      return;
+    } else if (request.act === 'highlight') {
+      q_results = psychoxpath.evaluateXPath("//*[contains(@class, 'psychoxpath_highlight')]");
+      if ((q_results != null ? q_results.length : void 0) > 0) {
+        for (_i = 0, _len = q_results.length; _i < _len; _i++) {
+          result = q_results[_i];
+          result.className = result.className.replace(/\bpsychoxpath_highlight\b/, '');
+        }
+      }
+      if (request != null ? request.path : void 0) {
+        q_results = psychoxpath.evaluateXPath(request.path);
+        if ((q_results != null ? q_results.length : void 0) > 0) {
+          for (_j = 0, _len2 = q_results.length; _j < _len2; _j++) {
+            result = q_results[_j];
+            result.className = result.className + " psychoxpath_highlight";
+          }
+        }
+      }
+      sendResponse({});
       return;
     }
     if (request.act === 'get') {

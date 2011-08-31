@@ -1,6 +1,6 @@
 {
     "name": "PsychoXPath",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Adds XPath support to the contextual menu.",
     "permissions": [
         "contextMenus",
@@ -21,6 +21,9 @@
         "js": [
             "psychoxpath.js",
             "content.js"
+         ],
+         "css": [
+            "content.css"
          ]
     }]
 }

@@ -3,11 +3,14 @@
 ###
 attributes = on
 echo_console = on
+use_clipboard = on
 
 ###
 # Copy the contents of `text` to the clipboard.
 ###
 to_clipboard = (text) ->
+    return if not use_clipboard
+
     textarea = document.getElementById "copy-workaround"
     textarea.value = text
     textarea.select()
@@ -39,6 +42,11 @@ chrome.omnibox.onInputChanged.addListener (text, suggest) ->
         send_message tab, { act: 'autocomplete', text: text }, (response) ->
             suggest(response.results) if response.results?.length > 0
 
+chrome.omnibox.onInputEntered.addListener (text) ->
+    chrome.tabs.getSelected null, (tab) ->
+        send_message tab, { act: 'highlight', path: text }
+        to_clipboard text
+
 # When our contextual menu should show
 default_context = ['all']
 
@@ -69,37 +77,32 @@ chrome.contextMenus.create({
     contexts: default_context
 })
 
-table = chrome.contextMenus.create({
-    title: 'Containing Table (Absolute)'
-    parentId: root
-    contexts: default_context
-    onclick: (info, tab) ->
-        message_and_save tab, { act: 'table' }
-
-})
-
-shortTable = chrome.contextMenus.create({
-    title: 'Containing Table (Short)'
-    parentId: root
-    contexts: default_context
-    onclick: (info, tab) ->
-        message_and_save tab, { act: 'table', short: true }
-})
-
-chrome.contextMenus.create({
-    type: 'separator'
-    parentId: root
-    contexts: default_context
-})
-
 testXPath = chrome.contextMenus.create({
-    title: 'Test XPath'
+    title: 'Test XPath (Console)'
     parentId: root
     contexts: default_context
     onclick: (info, tab) ->
         xpath = prompt 'XPath:', ''
         return if not xpath
         send_message tab, { act: 'test', path: xpath}
+})
+
+testXPathHigh = chrome.contextMenus.create({
+    title: 'Test XPath (Highlight)'
+    parentId: root
+    contexts: default_context
+    onclick: (info, tab) ->
+        xpath = prompt 'XPath:', ''
+        return if not xpath
+        send_message tab, { act: 'highlight', path: xpath}
+})
+
+clearHighlight = chrome.contextMenus.create({
+    title: 'Clear Highlights'
+    parentId: root
+    contexts: default_context
+    onclick: (info, tab) ->
+        send_message tab, { act: 'highlight', path: ''}
 })
 
 chrome.contextMenus.create({
@@ -119,11 +122,21 @@ positional = chrome.contextMenus.create({
 })
 
 echoConsole = chrome.contextMenus.create({
-    title: 'Echo XPaths to console'
+    title: 'Copy XPaths to console'
     parentId: root
     contexts: default_context
     type: 'checkbox'
     checked: echo_console 
     onclick: (info, tab) ->
         echo_console = info.checked
+})
+
+useClipboard = chrome.contextMenus.create({
+    title: 'Copy XPaths to clipboard'
+    parentId: root
+    contexts: default_context
+    type: 'checkbox'
+    checked: use_clipboard 
+    onclick: (info, tab) ->
+        use_clipboard = info.checked
 })

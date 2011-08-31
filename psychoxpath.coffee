@@ -51,18 +51,6 @@ psychoxpath =
         return path
 
     ###
-    # Returns the path up to the last occurance of `type`.
-    ###
-    lastOfType: (path, type) ->
-        for part in [path.length - 1..0] by -1
-            tmp = path[part].toLowerCase()
-            idx = tmp.indexOf('[')
-            tmp = tmp.substring(0, idx) if idx != -1
-
-            return path[0..part] if tmp.indexOf(type.toLowerCase()) == 0
-        return path
-
-    ###
     # Extremely silly way of getting a short(er) path.
     ###
     shortestXPath: (path) ->

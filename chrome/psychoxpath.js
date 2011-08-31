@@ -63,23 +63,6 @@
       return path;
     },
     /*
-        # Returns the path up to the last occurance of `type`.
-        */
-    lastOfType: function(path, type) {
-      var idx, part, tmp, _ref;
-      for (part = _ref = path.length - 1; part >= 0; part += -1) {
-        tmp = path[part].toLowerCase();
-        idx = tmp.indexOf('[');
-        if (idx !== -1) {
-          tmp = tmp.substring(0, idx);
-        }
-        if (tmp.indexOf(type.toLowerCase()) === 0) {
-          return path.slice(0, (part + 1) || 9e9);
-        }
-      }
-      return path;
-    },
-    /*
         # Extremely silly way of getting a short(er) path.
         */
     shortestXPath: function(path) {
