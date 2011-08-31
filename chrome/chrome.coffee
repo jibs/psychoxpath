@@ -18,18 +18,9 @@ to_clipboard = (text) ->
 # body `message`, saving the response (if any) to the clipboard.
 ###
 message_and_save = (tab, message) ->
-    message.attributes or= attributes
-    message.short or= off
-    message.echo or= on 
-
-    chrome.tabs.sendRequest tab.id, message, (response) ->
-        if not response? or not response.result?
-            return
-
-        if message.short? and message.short
-            to_clipboard "//#{ response.result.join('/') }"
-        else
-            to_clipboard "/#{ response.result.join('/') }"
+    send_message tab, message, (response) ->
+        return if not response.results?
+        to_clipboard response.results.join('')
 
 send_message = (tab, message, callback) ->
     message.attributes ?= attributes
@@ -37,58 +28,16 @@ send_message = (tab, message, callback) ->
     message.echo ?= echo_console
 
     chrome.tabs.sendRequest tab.id, message, (response) ->
-        if callback
-            callback response
+        callback(response) if callback
 
 ###
 # Autocompletion support for XPaths
 ###
 chrome.omnibox.onInputChanged.addListener (text, suggest) ->
     return if not text
-
     chrome.tabs.getSelected null, (tab) ->
         send_message tab, { act: 'autocomplete', text: text }, (response) ->
-            console.log response
-            suggest(response.result) if response.result?.length > 0
-
-# Contextual menu callbacks
-menu =
-    echoConsole: (info, tab) ->
-        echo_console = info.checked
-
-    positional: (info, tab) ->
-        attributes = info.checked
-
-    absolute: (info, tab) ->
-        message_and_save tab, {
-            act: 'absolute'
-        }
-
-    shortest: (info, tab) ->
-        message_and_save tab, {
-            act: 'absolute'
-            short: true
-        }
-
-    table: (info, tab) ->
-        message_and_save tab, {
-            act: 'table'
-        }
-
-    shortTable: (info, tab) ->
-        message_and_save tab, {
-            act: 'table'
-            short: true
-        }
-
-    testXPath: (info, tab) ->
-        xpath = prompt 'XPath:', ''
-        return if not xpath
-
-        send_message tab, {
-            act: 'test'
-            path: xpath
-        }
+            suggest(response.results) if response.results?.length > 0
 
 # When our contextual menu should show
 default_context = ['all']
@@ -102,14 +51,16 @@ absolute = chrome.contextMenus.create({
     title: 'Element (Absolute)'
     parentId: root
     contexts: default_context
-    onclick: menu.absolute
+    onclick: (info, tab) ->
+        message_and_save tab, { act: 'get' }
 })
 
 shortest = chrome.contextMenus.create({
-    title: 'Element (Shortest)'
+    title: 'Element (Short)'
     parentId: root
     contexts: default_context
-    onclick: menu.shortest
+    onclick: (info, tab) ->
+        message_and_save tab, { act: 'get', short: true }
 })
 
 chrome.contextMenus.create({
@@ -122,14 +73,17 @@ table = chrome.contextMenus.create({
     title: 'Containing Table (Absolute)'
     parentId: root
     contexts: default_context
-    onclick: menu.table
+    onclick: (info, tab) ->
+        message_and_save tab, { act: 'table' }
+
 })
 
 shortTable = chrome.contextMenus.create({
-    title: 'Containing Table (Shortest)'
+    title: 'Containing Table (Short)'
     parentId: root
     contexts: default_context
-    onclick: menu.shortTable
+    onclick: (info, tab) ->
+        message_and_save tab, { act: 'table', short: true }
 })
 
 chrome.contextMenus.create({
@@ -142,7 +96,10 @@ testXPath = chrome.contextMenus.create({
     title: 'Test XPath'
     parentId: root
     contexts: default_context
-    onclick: menu.testXPath
+    onclick: (info, tab) ->
+        xpath = prompt 'XPath:', ''
+        return if not xpath
+        send_message tab, { act: 'test', path: xpath}
 })
 
 chrome.contextMenus.create({
@@ -157,7 +114,8 @@ positional = chrome.contextMenus.create({
     contexts: default_context
     type: 'checkbox'
     checked: attributes
-    onclick: menu.positional
+    onclick: (info, tab) ->
+        attributes = info.checked
 })
 
 echoConsole = chrome.contextMenus.create({
@@ -166,5 +124,6 @@ echoConsole = chrome.contextMenus.create({
     contexts: default_context
     type: 'checkbox'
     checked: echo_console 
-    onclick: menu.echoConsole
+    onclick: (info, tab) ->
+        echo_console = info.checked
 })

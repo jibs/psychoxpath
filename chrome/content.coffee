@@ -1,8 +1,9 @@
 ###
 # (c) 2011 Tyler Kennedy <tk@tkte.ch>
 ###
-dwx_element = null
-p = psychoxpath
+
+# Last selected element
+element = null
 
 ###
 # Event delegation to get the element being selected by
@@ -11,57 +12,54 @@ p = psychoxpath
 ###
 document.body.onmousedown = (e) ->
     e or= window.event
-    dwx_element = (e.target or e.srcElement)
+    element = (e.target or e.srcElement)
 
 chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
-    result = null
-    request.short ?= off
-    request.attributes ?= on
+    if not request.act?
+        # Should never really happen...
+        sendResponse {}
 
-    switch request.act
-        when 'autocomplete'
-            results = null
+    # Perform an XPath query on this context and dump it to
+    # the console.
+    if request.act == 'test'
+        console.log "[ Results of #{ request.path } ===>"
+        console.log psychoxpath.evaluateXPath request.path
+        console.log "<=== ]"
 
-            tmp_results = p.evaluateXPath request.text
-            if tmp_results?
-                results = for tmp_result in tmp_results when tmp_result?
-                    xpath = p.getXPath tmp_result, [], off
-                    {
-                        'content': xpath.join('/')
-                        'description': xpath.join('/')
-                    }
-
-            sendResponse { result: results }
-            return
-        when 'test'
-            console.log "Results of #{ request.path } -->"
-            console.log p.evaluateXPath(request.path)
-            console.log '<--'
-
-            sendResponse { result: null }
-            return
-
-    # The rest of these commands require an element as context
-    if not dwx_element?
-        sendResponse { result: null }
+        sendResponse({})
         return
 
-    switch request.act
-        when 'absolute'
-            result = p.getXPath dwx_element,
-                [], !request.attributes
-        when 'table'
-            result = p.getXPath dwx_element,
-                [], !request.attributes
-            result = p.lastOfType result, 'table'
+    # Return a list of the first 15 items in the DOM that
+    # match an XPath.
+    if request.act == 'autocomplete'
+        if request?.text
+            q_results = psychoxpath.evaluateXPath request.text
+            if q_results?.length > 0
+                results = for result in q_results[..15]
+                    path = psychoxpath.getXPath result, [], !request.attributes ? false
+                    path = psychoxpath.shortestXPath path
+                    path = path.join('')
+                    { content: path, description: path }
+        else
+            results = []
 
-    result = p.shortestXPath result if request.short
-    # We do this here so the output is logged to the correct window
-    # without having to do a lookup.
-    if result and request.echo
-        console.log result
+        sendResponse {
+            results: results
+        }
+        return
+
+    # Get the XPath for the currently selected element
+    if request.act == 'get'
+        results = psychoxpath.getXPath element, [], !request.attributes ? false
+
+    # Optionally attempt to shorten the resulting XPath
+    if results? and request?.short
+        results = psychoxpath.shortestXPath results
+
+    # Optionally dump the XPath to the console
+    if results? and request?.echo
+        console.log results.join('')
 
     sendResponse {
-        result: result
-        wasShortened: request.short
+        results: results
     }
