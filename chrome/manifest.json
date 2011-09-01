@@ -1,10 +1,11 @@
 {
     "name": "PsychoXPath",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "description": "Adds XPath support to the contextual menu, and XPath autocomplete-ish behaviour to the omnibar.",
     "permissions": [
         "contextMenus",
-        "tabs"
+        "tabs",
+        "clipboardWrite"
     ],
     "omnibox": {
         "keyword": "xpath"
