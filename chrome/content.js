@@ -35,7 +35,8 @@
             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
               result = _ref[_i];
               path = psychoxpath.getXPath(result, {
-                useAttributes: (_ref2 = request.attributes) != null ? _ref2 : true
+                useAttributes: (_ref2 = request.attributes) != null ? _ref2 : true,
+                excludeClasses: ['psychoxpath_highlight']
               });
               path = psychoxpath.shortestXPath(path);
               path = path.join('');
@@ -74,7 +75,8 @@
     }
     if (request.act === 'get') {
       results = psychoxpath.getXPath(element, {
-        useAttributes: (_ref = request.attributes) != null ? _ref : true
+        useAttributes: (_ref = request.attributes) != null ? _ref : true,
+        excludeClasses: ['psychoxpath_highlight']
       });
     }
     if ((results != null) && (request != null ? request.short : void 0)) {

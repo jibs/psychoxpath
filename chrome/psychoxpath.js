@@ -63,7 +63,7 @@
         # when building the path.
         */
     getXPath: function(node, options) {
-      var attr, defaults, name, q, tmp, val;
+      var attr, defaults, name, peer, q, tmp, val, _i, _len, _ref, _ref2, _ref3;
       defaults = {
         useAttributes: true,
         includeTags: null,
@@ -77,7 +77,7 @@
         }
       }
       if (node.parentNode != null) {
-        defaults.path = psychoxpath.getXPath(node.parentNode, defaults);
+        psychoxpath.getXPath(node.parentNode, defaults);
       }
       if (node.nodeType !== node.ELEMENT_NODE) {
         return defaults.path;
@@ -95,7 +95,14 @@
           return defaults.path;
         }
       }
-      tmp.push("[" + (psychoxpath._getPosition(node)) + "]");
+      _ref3 = (_ref = (_ref2 = node.parentNode) != null ? _ref2.childNodes : void 0) != null ? _ref : [];
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        peer = _ref3[_i];
+        if (node !== peer && psychoxpath._sameType(node, peer)) {
+          tmp.push("[" + (psychoxpath._getPosition(node)) + "]");
+          break;
+        }
+      }
       defaults.path.push(tmp.join(''));
       return defaults.path;
     },
@@ -103,11 +110,9 @@
         # Extremely silly way of getting a short(er) path.
         */
     shortestXPath: function(path) {
-      var copy, q, root, sub, target, x, _ref;
-      copy = path.slice(0, path.length);
+      var q, root, sub, x, _ref;
       root = [];
-      target = psychoxpath.evaluateXPath(path.join(''));
-      for (x = _ref = copy.length - 1; x >= 0; x += -1) {
+      for (x = _ref = path.length - 1; x >= 0; x += -1) {
         sub = "//" + (psychoxpath._noPrefix(path[x]));
         root.unshift(sub);
         q = psychoxpath.evaluateXPath(root.join(''));

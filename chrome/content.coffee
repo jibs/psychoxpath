@@ -37,6 +37,7 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
                 results = for result in q_results[..15]
                     path = psychoxpath.getXPath(result, {
                         useAttributes: request.attributes ? on
+                        excludeClasses: ['psychoxpath_highlight']
                     })
                     
                     #result, [], !request.attributes ? false
@@ -68,6 +69,7 @@ chrome.extension.onRequest.addListener (request, sender, sendResponse) ->
     if request.act == 'get'
         results = psychoxpath.getXPath(element, {
             useAttributes: request.attributes ? on
+            excludeClasses: ['psychoxpath_highlight']
         })
 
     # Optionally attempt to shorten the resulting XPath

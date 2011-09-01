@@ -31,7 +31,6 @@ psychoxpath =
                         q = "//#{ nodeName }[contains(concat(' ', @class, ' '), ' #{ cl } ')]"
                         if psychoxpath.evaluateXPath(q)?.length == 1
                             return "[contains(concat(' ', @class, ' '), ' #{ cl } ')]"
-              
                 # Resort to key==value if we don't have anything else
                 else
                     q = "//#{ nodeName }[@#{ attrName }='#{ attrValue }']"
@@ -59,9 +58,9 @@ psychoxpath =
         }
         defaults[attr] = val for attr, val of options when val?
 
-        # Recursively resolve down to the root node.
         if node.parentNode?
-            defaults.path = psychoxpath.getXPath(node.parentNode, defaults)
+            psychoxpath.getXPath(node.parentNode, defaults)
+
         if node.nodeType != node.ELEMENT_NODE
             return defaults.path
 
@@ -80,9 +79,11 @@ psychoxpath =
                 defaults.path.push tmp.join('')
                 return defaults.path
 
-        # No other siblings? Sweet...
-            #if psychoxpath._sameType node.previousSibling, node.nextSibling
-        tmp.push "[#{ psychoxpath._getPosition(node) }]"
+        # If we have any peers, *always* use an absolute position
+        for peer in (node.parentNode?.childNodes ? [])
+            if node isnt peer and psychoxpath._sameType node, peer
+                tmp.push "[#{ psychoxpath._getPosition(node) }]"
+                break
 
         defaults.path.push tmp.join('')
         return defaults.path
@@ -91,16 +92,14 @@ psychoxpath =
     # Extremely silly way of getting a short(er) path.
     ###
     shortestXPath: (path) ->
-        copy = path[0...path.length]
         root = []
-        target = psychoxpath.evaluateXPath(path.join(''))
 
-        for x in [copy.length - 1..0] by -1
+        for x in [path.length - 1..0] by -1
             sub = "//#{ psychoxpath._noPrefix(path[x]) }"
             root.unshift(sub)
             q = psychoxpath.evaluateXPath(root.join(''))
-            if not q? or q?.length == 1
-                break
+            break if not q? or q?.length == 1
+
         return root
 
     ###
