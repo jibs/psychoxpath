@@ -1,6 +1,9 @@
 # PsychoXPath
 PsychoXPath is a silly rainy-day (24 hour) project built to suit myself, as I found the existing XPath tools for chrome somewhat lacking for my needs. It's more than likely you'll find a bug with it, in which case I hope you report it so I can fix it :)
 
+## Getting It
+To install the Chrome extension, either search for it on the [Chrome Extension Store](https://chrome.google.com/webstore?hl=en&category=ext) or for the more tech-savy, `git clone` this repo and add the `chrome` folder as a development plugin.
+
 ## Portability
 This core has only been tested on Firefox 4 and Chrome (Canary). The core's only dependency is [Coffeescript](http://jashkenas.github.com/coffee-script/), which it is written in. The generated JS has no dependencies and can be used anywhere.
 
