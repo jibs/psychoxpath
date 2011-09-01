@@ -7,6 +7,9 @@ To install the Chrome extension, either search for it on the [Chrome Extension S
 ## Portability
 This core has only been tested on Firefox 4 and Chrome (Canary). The core's only dependency is [Coffeescript](http://jashkenas.github.com/coffee-script/), which it is written in. The generated JS has no dependencies and can be used anywhere.
 
+## Licence
+PsychoXPath is 100% public domain, with the small exception of the icon images.
+
 ## Core Features
 - Create absolute paths for a given node, with variations
 - Very simple (and fairly stupid) ability to optimize absolute paths into shorter equivalents
