@@ -1,6 +1,6 @@
 {
     "name": "PsychoXPath",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "description": "Adds XPath support to the contextual menu, and XPath autocomplete-ish behaviour to the omnibar.",
     "permissions": [
         "contextMenus",
